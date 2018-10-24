@@ -1,0 +1,11 @@
+{
+  "name": "caipiao_paqu",
+  "version": "1.0.0",
+  "description": "爬取彩票开奖结果",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Monster Gene",
+  "license": "ISC"
+}
