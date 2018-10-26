@@ -11,7 +11,7 @@ const next = (date) => {
 }
 const getData = (date) => {
 	if(moment(date)<moment('2018-01-01')){
-		return 
+		return process.exit(0)
 	}
 	date = date ? date : Date.now()
 	let srcUrl = 'http://kaijiang.500.com/static/info/kaijiang/xml/gdsyxw/'
@@ -26,7 +26,7 @@ const getData = (date) => {
 		if (statusCode !== 200){
 			next(date)
 			res.resume()
-			return process.exit(0)
+			return 
 		}
 		
 		let rawData = ''
@@ -41,8 +41,14 @@ const getData = (date) => {
 				data.push(v.attribs)
 			})
 			DBConn.conn()
-			kaijiangModel.create(data.map(
-				v => Object.assign(v, {caipiao_pinzhong: 'gdsyxw', cpName: '广东11选5'})),
+			kaijiangModel.create(
+				data.map(
+					v => {
+						let t = v.opencode.split(',').sort().join(',')
+						v.opencode = t
+						return Object.assign(v, {caipiao_pinzhong: 'gdsyxw', cpName: '广东11选5'})
+					}
+				),
 				(err,doc) => {
 					if (err) {
 						console.log(err)
@@ -57,7 +63,8 @@ const getData = (date) => {
 			)
 		})
 	}).on('error', e=>{
-		console.error(e)
+		console.error("------ error ------")
+		next(date)
 	})
 }
 getData()
