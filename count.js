@@ -5,7 +5,10 @@ const kaijiangModel = require('./db/models/kaijiang')
 
 DBConn.conn()
 kaijiangModel.mapReduce({
-	map:function(){
+	/**
+	 * map函数的作用是遍历集合，调用emit函数将集合中userId、nick字段以键值对的形式传递给reduce函数
+	 */
+	map: function(){
 		emit(this.opencode, this.expect)
 	},
 	/**
@@ -14,24 +17,40 @@ kaijiangModel.mapReduce({
 	 * 由于我的程序中一个values的各个元素的值是相同的，所以没有对values进行遍历。
 	 *  */
 	reduce: function(key, values){
-		return values.length
+		return {acc: values.length}
 	}
 },function(err, result){
-	result.results.sort((a,b)=>b.value-a.value);
-	fs.writeFile('./'+Date.now()+'.json',JSON.stringify(result),()=>{
-		// console.log(arguments)
-	})
-	var f = result.results.filter(v=>v.value>15)
-	console.log(f.length,f.reduce((acc, cur)=>acc+cur.value,0))
-	console.log(result.results.length)
+	if(err) {
+		console.log('------ mapreduce error ------')
+		return
+	}
+	result.results.sort((a,b)=>b.value.acc-a.value.acc);
+	fs.writeFile('./'+Date.now()+'.json',JSON.stringify(result),()=>{})
 })
 
-// .aggregate([
-// 	{$match:{opentime: {$lt: new Date()}}},
-// 	{$group:{
-// 		_id: null,
-// 		opentime:{$sum: 1}
-// 	}}
-// ]).then(res=>{
-// 	console.log(res)
-// })
+kaijiangModel.find((err, doc)=>{
+	console.log(doc.length)
+	let count = doc.reduce((acc, cur) => {
+		if (typeof acc[cur.opencode] !== 'undefined'){
+			acc[cur.opencode] += 1
+		}else{
+			acc[cur.opencode] = 1
+		}
+		return acc
+	},{})
+	count = Object.keys(count).map(key => ({opencode:key,acc: count[key]}))
+	count.sort((a, b) => b.acc-a.acc)
+	console.log(count.length, count.reduce((acc, cur)=>acc+cur.acc, 0))
+	fs.writeFile('./'+Date.now()+"_2.json",JSON.stringify(count),()=>{})
+})
+
+kaijiangModel.aggregate([
+	{$match:{opentime: {$lt: new Date()}}},
+	{$group:{
+		_id: '$opencode',
+		acc:{$sum: 1}
+	}},
+	{$sort: {acc: -1}}
+]).then(res=>{
+	fs.writeFile('./'+Date.now()+"_3.json",JSON.stringify(res),()=>{})
+})
